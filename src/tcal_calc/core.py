@@ -19,7 +19,7 @@ import traceback
 import logging
 
 from .utils import *
-
+import time
 
 
 Rx_dict = {
@@ -48,10 +48,11 @@ def dumb(arr):
     return out[:-1]
 
 def select_regions(psscan):
+    #plt.plot(psscan.timeaverage())
+    plt.ion()
     psscan.timeaverage().plot()
     
     includes=[]
-    
     try:
         while True:
             start=time.time()
@@ -60,19 +61,22 @@ def select_regions(psscan):
             includes.append(vline)
             plt.axvline(x=vline,c='k',linewidth=0.5)
             plt.pause(0.05)
+            plt.show()
             if (time.time()-start > 60):
                 break
     except:
         print(includes)
         plt.close()
         
-    includes = freq_to_chan(includes,psscan)
+    if len(includes) > 0:
+        includes = freq_to_chan(includes,psscan)
     
-    #make mask
-    mask = np.ones(psscan.timeaverage().data.shape[0])
-    for i in range(len(includes)//2):
-        mask[includes[2*i]:includes[(2*i)+1]] = 0
-        
+        #make mask
+        mask = np.ones(psscan.timeaverage().data.shape[0])
+        for i in range(len(includes)//2):
+            mask[includes[2*i]:includes[(2*i)+1]] = 0
+    else:
+        mask = np.zeros(psscan.timeaverage().data.shape[0])
     return mask
 
 
