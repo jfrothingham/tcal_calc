@@ -120,22 +120,22 @@ def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='ga
     #onsource_calon_indices = sdf.calonoff_rows(onscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum)['ON']
     onsource_calon_indices = tp_on._calrows['ON']
     onsource_calon_chunk = sdf.rawspectra(0,0)[onsource_calon_indices]
-    onsource_calon_data = np.mean(onsource_calon_chunk,axis=0)
+    onsource_calon_data = np.nanmean(onsource_calon_chunk,axis=0)
 
     #onsource_caloff_indices = sdf.calonoff_rows(onscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum)['OFF']
     onsource_caloff_indices = tp_on._calrows['OFF']
     onsource_caloff_chunk = sdf.rawspectra(0,0)[onsource_caloff_indices]
-    onsource_caloff_data = np.mean(onsource_caloff_chunk,axis=0)
+    onsource_caloff_data = np.nanmean(onsource_caloff_chunk,axis=0)
 
     #offsource_calon_indices = sdf.calonoff_rows(offscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum)['ON']
     offsource_calon_indices = tp_off._calrows['ON']
     offsource_calon_chunk = sdf.rawspectra(0,0)[offsource_calon_indices]
-    offsource_calon_data = np.mean(offsource_calon_chunk,axis=0)
+    offsource_calon_data = np.nanmean(offsource_calon_chunk,axis=0)
 
     #offsource_caloff_indices = sdf.calonoff_rows(offscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum)['OFF']
     offsource_caloff_indices = tp_off._calrows['OFF']
     offsource_caloff_chunk = sdf.rawspectra(0,0)[offsource_caloff_indices]
-    offsource_caloff_data = np.mean(offsource_caloff_chunk,axis=0)
+    offsource_caloff_data = np.nanmean(offsource_caloff_chunk,axis=0)
     
     num_chan = len(offsource_caloff_data)
     #need to get frequencies
@@ -159,7 +159,6 @@ def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='ga
     #get MJD of observation for getForecastValues
     tp_spec = tp_on.timeaverage()
     
-    
     #uncalibrated Tcal calculations (cal for the cal god)
 
     #Find mean/deviation of inner 80%
@@ -175,7 +174,6 @@ def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='ga
     start_idx = int(0.1*num_chan)
     end_idx = int(0.9*num_chan)
 
-    print(calonsource[start_idx:end_idx])
 
     meancalonsource=np.nanmean(calonsource[start_idx:end_idx])
     meancaloffsource=np.nanmean(caloffsource[start_idx:end_idx])
