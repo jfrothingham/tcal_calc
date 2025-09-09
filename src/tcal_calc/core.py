@@ -112,7 +112,7 @@ def freq_to_chan(includes,psscan):
 
 
 def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='garbage.txt'):
-    # access cal indices from tpscan
+    # access cal indices from tpscan and use tp_on for metadata
     tp_on = sdf.gettp(scan=onscan,plnum=plnum,ifnum=ifnum,fdnum=fdnum)[0]
     tp_off = sdf.gettp(scan=offscan,plnum=plnum,ifnum=ifnum,fdnum=fdnum)[0]
 
@@ -136,14 +136,11 @@ def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='ga
     offsource_caloff_indices = tp_off._calrows['OFF']
     offsource_caloff_chunk = sdf.rawspectra(0,0)[offsource_caloff_indices]
     offsource_caloff_data = np.mean(offsource_caloff_chunk,axis=0)
-
-    #get a tpscan for metadata
-    tpscan  = sdf.gettp(scan=onscan,plnum=plnum,ifnum=ifnum,fdnum=fdnum)
     
     num_chan = len(offsource_caloff_data)
     #need to get frequencies
     #is there a way to do this without the time average?
-    freqs = np.flip(np.array( tpscan.timeaverage().frequency.to(u.MHz) ))
+    freqs = np.flip(np.array( tp_on.timeaverage().frequency.to(u.MHz) ))
     
     if mask is not None:
         onsource_calon_data[mask==1] = np.nan
@@ -160,7 +157,7 @@ def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='ga
     ApEff = getApEff(sdf.get_summary().iloc[onscan_idx]['ELEVATION'], freqs)
 
     #get MJD of observation for getForecastValues
-    tp_spec = tpscan.timeaverage()
+    tp_spec = tp_on.timeaverage()
     
     
     #uncalibrated Tcal calculations (cal for the cal god)
@@ -177,6 +174,8 @@ def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='ga
 
     start_idx = int(0.1*num_chan)
     end_idx = int(0.9*num_chan)
+
+    print(calonsource[start_idx:end_idx])
 
     meancalonsource=np.nanmean(calonsource[start_idx:end_idx])
     meancaloffsource=np.nanmean(caloffsource[start_idx:end_idx])
