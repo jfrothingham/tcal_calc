@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import traceback
 import logging
 
-from .utils import *
+from tcal_calc.utils import *
 import time
 
 
