@@ -116,9 +116,6 @@ def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='ga
     tp_on = sdf.gettp(scan=onscan,plnum=plnum,ifnum=ifnum,fdnum=fdnum)[0]
     tp_off = sdf.gettp(scan=offscan,plnum=plnum,ifnum=ifnum,fdnum=fdnum)[0]
 
-    print(tp_on)
-    print(tp_off)
-
     #get the 4 sig/cal states
     #onsource_calon_indices = sdf.calonoff_rows(onscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum)['ON']
     onsource_calon_indices = tp_on._calrows['ON']
@@ -155,12 +152,12 @@ def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='ga
         offsource_caloff_data[mask==1] = np.nan
         freqs[mask==1] = np.nan
 
-    onscan_idx = sdf.summary().SCAN.eq(onscan).idxmax()
-    offscan_idx = sdf.summary().SCAN.eq(offscan).idxmax()
+    onscan_idx = sdf.get_summary().SCAN.eq(onscan).idxmax()
+    offscan_idx = sdf.get_summary().SCAN.eq(offscan).idxmax()
 
     #need to get source and elevation from the scan?
     #fluxS_vctr = getFluxCalib(sdfAsum.iloc[onscan_idx]['OBJECT'],freqs)
-    ApEff = getApEff(sdf.summary().iloc[onscan_idx]['ELEVATIO'], freqs)
+    ApEff = getApEff(sdf.get_summary().iloc[onscan_idx]['ELEVATION'], freqs)
 
     #get MJD of observation for getForecastValues
     tp_spec = tpscan.timeaverage()
@@ -208,7 +205,7 @@ def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='ga
     Tcal = np.flip(Tcal)
     Tsys_caloff = np.flip(Tsys_caloff)
     
-    sdfsum = sdf.summary()
+    sdfsum = sdf.get_summary()
     
     #Calibrating the calibrations!
     #get source flux, but in Ta not Jy
