@@ -113,27 +113,30 @@ def freq_to_chan(includes,psscan):
 
 def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='garbage.txt'):
     # access cal indices from tpscan
-    tp_on = sdf.gettp(scan=onscan,plnum=plnum,ifnum=ifnum,fdnum=fdnum)
-    tp_off = sdf.gettp(scan=offscan,plnum=plnum,ifnum=ifnum,fdnum=fdnum)
+    tp_on = sdf.gettp(scan=onscan,plnum=plnum,ifnum=ifnum,fdnum=fdnum)[0]
+    tp_off = sdf.gettp(scan=offscan,plnum=plnum,ifnum=ifnum,fdnum=fdnum)[0]
+
+    print(tp_on)
+    print(tp_off)
 
     #get the 4 sig/cal states
     #onsource_calon_indices = sdf.calonoff_rows(onscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum)['ON']
-    onsource_calon_indices = tp_on.calrows['ON']
+    onsource_calon_indices = tp_on._calrows['ON']
     onsource_calon_chunk = sdf.rawspectra(0,0)[onsource_calon_indices]
     onsource_calon_data = np.mean(onsource_calon_chunk,axis=0)
 
     #onsource_caloff_indices = sdf.calonoff_rows(onscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum)['OFF']
-    onsource_caloff_indices = tp_on.calrows['OFF']
+    onsource_caloff_indices = tp_on._calrows['OFF']
     onsource_caloff_chunk = sdf.rawspectra(0,0)[onsource_caloff_indices]
     onsource_caloff_data = np.mean(onsource_caloff_chunk,axis=0)
 
     #offsource_calon_indices = sdf.calonoff_rows(offscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum)['ON']
-    offsource_calon_indices = tp_off.calrows['ON']
+    offsource_calon_indices = tp_off._calrows['ON']
     offsource_calon_chunk = sdf.rawspectra(0,0)[offsource_calon_indices]
     offsource_calon_data = np.mean(offsource_calon_chunk,axis=0)
 
     #offsource_caloff_indices = sdf.calonoff_rows(offscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum)['OFF']
-    offsource_caloff_indices = tp_off.calrows['OFF']
+    offsource_caloff_indices = tp_off._calrows['OFF']
     offsource_caloff_chunk = sdf.rawspectra(0,0)[offsource_caloff_indices]
     offsource_caloff_data = np.mean(offsource_caloff_chunk,axis=0)
 
