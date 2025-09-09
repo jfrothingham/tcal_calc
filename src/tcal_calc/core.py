@@ -137,10 +137,12 @@ def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='ga
     offsource_caloff_chunk = sdf.rawspectra(0,0)[offsource_caloff_indices]
     offsource_caloff_data = np.nanmean(offsource_caloff_chunk,axis=0)
     
+    #get MJD of observation for getForecastValues
+    tp_spec = tp_on.timeaverage()
+
     num_chan = len(offsource_caloff_data)
     #need to get frequencies
-    #is there a way to do this without the time average?
-    freqs = np.flip(np.array( tp_on.timeaverage().frequency.to(u.MHz) ))
+    freqs = np.flip(np.array( tp_spec.frequency.to(u.MHz) ))
     
     if mask is not None:
         onsource_calon_data[mask==1] = np.nan
@@ -156,8 +158,7 @@ def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='ga
     #fluxS_vctr = getFluxCalib(sdfAsum.iloc[onscan_idx]['OBJECT'],freqs)
     ApEff = getApEff(sdf.get_summary().iloc[onscan_idx]['ELEVATION'], freqs)
 
-    #get MJD of observation for getForecastValues
-    tp_spec = tp_on.timeaverage()
+
     
     #uncalibrated Tcal calculations (cal for the cal god)
 
@@ -219,7 +220,7 @@ def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='ga
     print(f'Tsys: {np.nanmean(TSys_Cal[start_idx:end_idx])}')
 
     #AveEl is average elevation between the on/off scans
-    AveEl = 0.5*(sdfsum.iloc[onscan_idx]['ELEVATIO'] + sdfsum.iloc[offscan_idx]['ELEVATIO'])
+    AveEl = 0.5*(sdfsum.iloc[onscan_idx]['ELEVATION'] + sdfsum.iloc[offscan_idx]['ELEVATION'])
     AM=AirMass(AveEl)
 
     #string version of coarse frequencies in GHz for opacity corrections (1 MHz resolution)
