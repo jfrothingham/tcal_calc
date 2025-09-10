@@ -243,12 +243,12 @@ def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='ga
 
 
 
-def tcal_master(session, offscan, plnum=0, fdnum=0,plot=True):
+def tcal_master(session, offscan, band, inpath='/home/sdfits/{session}', plnum=0, fdnum=0,plot=True):
 
-    fileout=f'Tcals_{session[5:]}.txt'
+    fileout=f'Tcals_{session[4:]}.txt'
     print(fileout)
     #set up derived params
-    band = session[session.rfind('_')+1:]
+    #band = session[session.rfind('_')+1:] # This assumes session name ends in C, L, or PF8
     #number of IFs to plot
     num_ifs_tot = Rx_dict[band][0]*Rx_dict[band][1]
     #number of sep IF configs in astrid script
@@ -258,8 +258,6 @@ def tcal_master(session, offscan, plnum=0, fdnum=0,plot=True):
     #number of scans to skip to get same pol type/diode level 
     num_scans_to_skip = 2*Rx_dict[band][2]*Rx_dict[band][3]
 
-    inpath=f'/home/sdfits/{session}'
-    inpath = '/home/scratch/esmith/TRCO_230718_C.raw.vegas/'
     infiles = glob.glob(inpath+'*fits')
     print(infiles)
     if len(infiles) != num_sdfs:
