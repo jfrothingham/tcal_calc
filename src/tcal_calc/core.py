@@ -121,25 +121,25 @@ def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='ga
     #onsource_calon_indices = tp_on._calrows['ON']
     #onsource_calon_chunk = sdf.rawspectra(0,0)[onsource_calon_indices]
     #onsource_calon_data = np.nanmean(onsource_calon_chunk,axis=0)
-    onsource_calon_data = sdf.gettp(scan=onscan, ifnum=ifnum, fdnum=fdnum, plnum=plnum, cal=True).timeaverage()
+    onsource_calon_data = sdf.gettp(scan=onscan, ifnum=ifnum, fdnum=fdnum, plnum=plnum, cal=True).timeaverage().flux.value
 
     #onsource_caloff_indices = sdf.calonoff_rows(onscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum)['OFF']
     # onsource_caloff_indices = tp_on._calrows['OFF']
     # onsource_caloff_chunk = sdf.rawspectra(0,0)[onsource_caloff_indices]
     # onsource_caloff_data = np.nanmean(onsource_caloff_chunk,axis=0)
-    onsource_caloff_data = sdf.gettp(scan=onscan, ifnum=ifnum, fdnum=fdnum, plnum=plnum, cal=False).timeaverage()
+    onsource_caloff_data = sdf.gettp(scan=onscan, ifnum=ifnum, fdnum=fdnum, plnum=plnum, cal=False).timeaverage().flux.value
 
     #offsource_calon_indices = sdf.calonoff_rows(offscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum)['ON']
     # offsource_calon_indices = tp_off._calrows['ON']
     # offsource_calon_chunk = sdf.rawspectra(0,0)[offsource_calon_indices]
     # offsource_calon_data = np.nanmean(offsource_calon_chunk,axis=0)
-    offsource_calon_data = sdf.gettp(scan=offscan, ifnum=ifnum, fdnum=fdnum, plnum=plnum, cal=True).timeaverage()
+    offsource_calon_data = sdf.gettp(scan=offscan, ifnum=ifnum, fdnum=fdnum, plnum=plnum, cal=True).timeaverage().flux.value
 
     #offsource_caloff_indices = sdf.calonoff_rows(offscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum)['OFF']
     # offsource_caloff_indices = tp_off._calrows['OFF']
     # offsource_caloff_chunk = sdf.rawspectra(0,0)[offsource_caloff_indices]
     # offsource_caloff_data = np.nanmean(offsource_caloff_chunk,axis=0)
-    offsource_caloff_data = sdf.gettp(scan=offscan, ifnum=ifnum, fdnum=fdnum, plnum=plnum, cal=False).timeaverage()
+    offsource_caloff_data = sdf.gettp(scan=offscan, ifnum=ifnum, fdnum=fdnum, plnum=plnum, cal=False).timeaverage().flux.value
     
     #get MJD of observation for getForecastValues
     tp_spec = tp_on.timeaverage()
