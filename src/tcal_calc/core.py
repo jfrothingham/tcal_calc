@@ -112,41 +112,19 @@ def freq_to_chan(includes,psscan):
 
 
 def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='garbage.txt'):
-    # access cal indices from tpscan and use tp_on for metadata
-    tp_on = sdf.gettp(scan=onscan,plnum=plnum,ifnum=ifnum,fdnum=fdnum)[0]
-    tp_off = sdf.gettp(scan=offscan,plnum=plnum,ifnum=ifnum,fdnum=fdnum)[0]
-
     #get the 4 sig/cal states
-    #onsource_calon_indices = sdf.calonoff_rows(onscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum)['ON']
-    #onsource_calon_indices = tp_on._calrows['ON']
-    #onsource_calon_chunk = sdf.rawspectra(0,0)[onsource_calon_indices]
-    #onsource_calon_data = np.nanmean(onsource_calon_chunk,axis=0)
     onsource_calon_data = sdf.gettp(scan=onscan, ifnum=ifnum, fdnum=fdnum, plnum=plnum, cal=True).timeaverage().flux.value
-
-    #onsource_caloff_indices = sdf.calonoff_rows(onscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum)['OFF']
-    # onsource_caloff_indices = tp_on._calrows['OFF']
-    # onsource_caloff_chunk = sdf.rawspectra(0,0)[onsource_caloff_indices]
-    # onsource_caloff_data = np.nanmean(onsource_caloff_chunk,axis=0)
     onsource_caloff_data = sdf.gettp(scan=onscan, ifnum=ifnum, fdnum=fdnum, plnum=plnum, cal=False).timeaverage().flux.value
-
-    #offsource_calon_indices = sdf.calonoff_rows(offscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum)['ON']
-    # offsource_calon_indices = tp_off._calrows['ON']
-    # offsource_calon_chunk = sdf.rawspectra(0,0)[offsource_calon_indices]
-    # offsource_calon_data = np.nanmean(offsource_calon_chunk,axis=0)
     offsource_calon_data = sdf.gettp(scan=offscan, ifnum=ifnum, fdnum=fdnum, plnum=plnum, cal=True).timeaverage().flux.value
-
-    #offsource_caloff_indices = sdf.calonoff_rows(offscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum)['OFF']
-    # offsource_caloff_indices = tp_off._calrows['OFF']
-    # offsource_caloff_chunk = sdf.rawspectra(0,0)[offsource_caloff_indices]
-    # offsource_caloff_data = np.nanmean(offsource_caloff_chunk,axis=0)
     offsource_caloff_data = sdf.gettp(scan=offscan, ifnum=ifnum, fdnum=fdnum, plnum=plnum, cal=False).timeaverage().flux.value
     
     #get MJD of observation for getForecastValues
-    tp_spec = tp_on.timeaverage()
+    tp_on = sdf.gettp(scan=onscan,plnum=plnum,ifnum=ifnum,fdnum=fdnum)[0].timeaverage()
+    tp_off = sdf.gettp(scan=offscan,plnum=plnum,ifnum=ifnum,fdnum=fdnum)[0].timeaverage()
 
     num_chan = len(offsource_caloff_data)
     #need to get frequencies
-    freqs = np.flip(np.array( tp_spec.frequency.to(u.MHz) ))
+    freqs = np.flip(np.array(tp_on.frequency.to(u.MHz) ))
     
     if mask is not None:
         onsource_calon_data[mask==1] = np.nan
@@ -155,12 +133,13 @@ def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='ga
         offsource_caloff_data[mask==1] = np.nan
         freqs[mask==1] = np.nan
 
-    onscan_idx = sdf.get_summary().SCAN.eq(onscan).idxmax()
-    offscan_idx = sdf.get_summary().SCAN.eq(offscan).idxmax()
+    #onscan_idx = sdf.get_summary().SCAN.eq(onscan).idxmax()
+    #offscan_idx = sdf.get_summary().SCAN.eq(offscan).idxmax()
 
     #need to get source and elevation from the scan?
     #fluxS_vctr = getFluxCalib(sdfAsum.iloc[onscan_idx]['OBJECT'],freqs)
-    ApEff = getApEff(sdf.get_summary().iloc[onscan_idx]['ELEVATION'], freqs)
+    #ApEff = getApEff(sdf.get_summary().iloc[onscan_idx]['ELEVATION'], freqs)
+    ApEff = getApEff(tp_on.meta['ELEVATIO'], freqs)
 
 
     
@@ -211,7 +190,7 @@ def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='ga
     
     #Calibrating the calibrations!
     #get source flux, but in Ta not Jy
-    source = tp_spec.meta['OBJECT']
+    source = tp_on.meta['OBJECT']
     fluxT_Vctr = compute_sed(freqs*u.MHz,'Perley-Butler 2017',source,units='K')
 
 
@@ -224,14 +203,15 @@ def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='ga
     print(f'Tsys: {np.nanmean(TSys_Cal[start_idx:end_idx])}')
 
     #AveEl is average elevation between the on/off scans
-    AveEl = 0.5*(sdfsum.iloc[onscan_idx]['ELEVATION'] + sdfsum.iloc[offscan_idx]['ELEVATION'])
+    #AveEl = 0.5*(sdfsum.iloc[onscan_idx]['ELEVATION'] + sdfsum.iloc[offscan_idx]['ELEVATION'])
+    AveEl = 0.5*(tp_on.meta['ELEVATIO'] + tp_off.meta['ELEVATIO'])
     AM=AirMass(AveEl)
 
     #string version of coarse frequencies in GHz for opacity corrections (1 MHz resolution)
     freqFC = (np.arange( np.round(np.nanmax(freqs)-np.nanmin(freqs)) ) + np.nanmin(freqs)) / 1000
     
     #print('gabagool!')
-    mjd = astropy.time.Time(tp_spec.meta['DATE-OBS']).mjd
+    mjd = astropy.time.Time(tp_on.meta['DATE-OBS']).mjd
 
     arg = f'/users/rmaddale/bin/getForecastValues -type Opacity -freqList {dumb(freqFC)} -timeList {mjd}'
     #print(arg)
