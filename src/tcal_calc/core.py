@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import traceback
 import logging
 
-from .utils import *
+from tcal_calc.utils import *
 import time
 
 
@@ -112,31 +112,19 @@ def freq_to_chan(includes,psscan):
 
 
 def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='garbage.txt'):
-    
     #get the 4 sig/cal states
-    onsource_calon_indices = sdf.calonoff_rows(onscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum)['ON']
-    onsource_calon_chunk = sdf.rawspectra(0,0)[onsource_calon_indices]
-    onsource_calon_data = np.mean(onsource_calon_chunk,axis=0)
-
-    onsource_caloff_indices = sdf.calonoff_rows(onscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum)['OFF']
-    onsource_caloff_chunk = sdf.rawspectra(0,0)[onsource_caloff_indices]
-    onsource_caloff_data = np.mean(onsource_caloff_chunk,axis=0)
-
-    offsource_calon_indices = sdf.calonoff_rows(offscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum)['ON']
-    offsource_calon_chunk = sdf.rawspectra(0,0)[offsource_calon_indices]
-    offsource_calon_data = np.mean(offsource_calon_chunk,axis=0)
-
-    offsource_caloff_indices = sdf.calonoff_rows(offscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum)['OFF']
-    offsource_caloff_chunk = sdf.rawspectra(0,0)[offsource_caloff_indices]
-    offsource_caloff_data = np.mean(offsource_caloff_chunk,axis=0)
-
-    #get a tpscan for metadata
-    tpscan  = sdf.gettp(scan=onscan,plnum=plnum,ifnum=ifnum,fdnum=fdnum)
+    onsource_calon_data = sdf.gettp(scan=onscan, ifnum=ifnum, fdnum=fdnum, plnum=plnum, cal=True).timeaverage().flux.value
+    onsource_caloff_data = sdf.gettp(scan=onscan, ifnum=ifnum, fdnum=fdnum, plnum=plnum, cal=False).timeaverage().flux.value
+    offsource_calon_data = sdf.gettp(scan=offscan, ifnum=ifnum, fdnum=fdnum, plnum=plnum, cal=True).timeaverage().flux.value
+    offsource_caloff_data = sdf.gettp(scan=offscan, ifnum=ifnum, fdnum=fdnum, plnum=plnum, cal=False).timeaverage().flux.value
     
+    #get MJD of observation for getForecastValues
+    tp_on = sdf.gettp(scan=onscan,plnum=plnum,ifnum=ifnum,fdnum=fdnum)[0].timeaverage()
+    tp_off = sdf.gettp(scan=offscan,plnum=plnum,ifnum=ifnum,fdnum=fdnum)[0].timeaverage()
+
     num_chan = len(offsource_caloff_data)
     #need to get frequencies
-    #is there a way to do this without the time average?
-    freqs = np.flip(np.array( tpscan.timeaverage().frequency.to(u.MHz) ))
+    freqs = np.flip(np.array(tp_on.frequency.to(u.MHz) ))
     
     if mask is not None:
         onsource_calon_data[mask==1] = np.nan
@@ -145,16 +133,15 @@ def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='ga
         offsource_caloff_data[mask==1] = np.nan
         freqs[mask==1] = np.nan
 
-    onscan_idx = sdf.summary().SCAN.eq(onscan).idxmax()
-    offscan_idx = sdf.summary().SCAN.eq(offscan).idxmax()
+    #onscan_idx = sdf.get_summary().SCAN.eq(onscan).idxmax()
+    #offscan_idx = sdf.get_summary().SCAN.eq(offscan).idxmax()
 
     #need to get source and elevation from the scan?
     #fluxS_vctr = getFluxCalib(sdfAsum.iloc[onscan_idx]['OBJECT'],freqs)
-    ApEff = getApEff(sdf.summary().iloc[onscan_idx]['ELEVATIO'], freqs)
+    #ApEff = getApEff(sdf.get_summary().iloc[onscan_idx]['ELEVATION'], freqs)
+    ApEff = getApEff(tp_on.meta['ELEVATIO'], freqs)
 
-    #get MJD of observation for getForecastValues
-    tp_spec = tpscan.timeaverage()
-    
+
     
     #uncalibrated Tcal calculations (cal for the cal god)
 
@@ -170,6 +157,7 @@ def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='ga
 
     start_idx = int(0.1*num_chan)
     end_idx = int(0.9*num_chan)
+
 
     meancalonsource=np.nanmean(calonsource[start_idx:end_idx])
     meancaloffsource=np.nanmean(caloffsource[start_idx:end_idx])
@@ -198,11 +186,11 @@ def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='ga
     Tcal = np.flip(Tcal)
     Tsys_caloff = np.flip(Tsys_caloff)
     
-    sdfsum = sdf.summary()
+    sdfsum = sdf.get_summary()
     
     #Calibrating the calibrations!
     #get source flux, but in Ta not Jy
-    source = tp_spec.meta['OBJECT']
+    source = tp_on.meta['OBJECT']
     fluxT_Vctr = compute_sed(freqs*u.MHz,'Perley-Butler 2017',source,units='K')
 
 
@@ -215,14 +203,15 @@ def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='ga
     print(f'Tsys: {np.nanmean(TSys_Cal[start_idx:end_idx])}')
 
     #AveEl is average elevation between the on/off scans
-    AveEl = 0.5*(sdfsum.iloc[onscan_idx]['ELEVATIO'] + sdfsum.iloc[offscan_idx]['ELEVATIO'])
+    #AveEl = 0.5*(sdfsum.iloc[onscan_idx]['ELEVATION'] + sdfsum.iloc[offscan_idx]['ELEVATION'])
+    AveEl = 0.5*(tp_on.meta['ELEVATIO'] + tp_off.meta['ELEVATIO'])
     AM=AirMass(AveEl)
 
     #string version of coarse frequencies in GHz for opacity corrections (1 MHz resolution)
     freqFC = (np.arange( np.round(np.nanmax(freqs)-np.nanmin(freqs)) ) + np.nanmin(freqs)) / 1000
     
     #print('gabagool!')
-    mjd = astropy.time.Time(tp_spec.meta['DATE-OBS']).mjd
+    mjd = astropy.time.Time(tp_on.meta['DATE-OBS']).mjd
 
     arg = f'/users/rmaddale/bin/getForecastValues -type Opacity -freqList {dumb(freqFC)} -timeList {mjd}'
     #print(arg)
@@ -254,12 +243,12 @@ def tcal_calc(sdf,onscan,offscan,mask = None,ifnum=0,plnum=0,fdnum=0,fileout='ga
 
 
 
-def tcal_master(session, offscan, plnum=0, fdnum=0,plot=True):
+def tcal_master(session, offscan, band, inpath='/home/sdfits/{session}', plnum=0, fdnum=0,plot=True):
 
-    fileout=f'Tcals_{session[5:]}.txt'
+    fileout=f'Tcals_{session[4:]}.txt'
     print(fileout)
     #set up derived params
-    band = session[session.rfind('_')+1:]
+    #band = session[session.rfind('_')+1:] # This assumes session name ends in C, L, or PF8
     #number of IFs to plot
     num_ifs_tot = Rx_dict[band][0]*Rx_dict[band][1]
     #number of sep IF configs in astrid script
@@ -269,8 +258,6 @@ def tcal_master(session, offscan, plnum=0, fdnum=0,plot=True):
     #number of scans to skip to get same pol type/diode level 
     num_scans_to_skip = 2*Rx_dict[band][2]*Rx_dict[band][3]
 
-    inpath=f'/home/sdfits/{session}'
-    inpath = '/home/scratch/esmith/TRCO_230718_C.raw.vegas/'
     infiles = glob.glob(inpath+'*fits')
     print(infiles)
     if len(infiles) != num_sdfs:
